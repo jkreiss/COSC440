@@ -80,7 +80,7 @@ class Model:
         # TODO: calculate the batch accuracy
         predictions = np.argmax(outputs, axis=1)
         number_correct = np.sum(predictions == labels)  # sums all intersections
-        print(number_correct)
+        print(f'{number_correct/(len(labels)/100)}% accuracy')
         return number_correct / len(labels)
 
 
@@ -185,7 +185,7 @@ def main(mnist_data_folder):
     test(model, test_inputs, test_labels)
     # TODO: Visualize the data by using visualize_results()
     num = random.randint(0,9989)
-    # visualize_results(test_inputs[num:num+10], model.call(test_inputs)[num:num+10], test_labels[num:num+10])
+    visualize_results(test_inputs[num:num+10], model.call(test_inputs)[num:num+10], test_labels[num:num+10])
     print("end of assignment 1")
 
 

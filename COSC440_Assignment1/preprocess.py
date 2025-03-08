@@ -36,11 +36,9 @@ def get_data(inputs_file_path, labels_file_path, num_examples):
 
     with gzip.open(labels_file_path, 'rb') as labels:
         labels = np.frombuffer(labels.read(), dtype=np.int8, offset=8)
-
-
-
-
     return inputs, labels
+
+
 if __name__ == '__main__':
     inputs, labels = get_data('MNIST_data/t10k-images-idx3-ubyte.gz', 'MNIST_data/t10k-labels-idx1-ubyte.gz', 10000)
     import matplotlib.pyplot as plt
