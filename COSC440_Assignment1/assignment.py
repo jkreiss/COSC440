@@ -22,12 +22,14 @@ class Model:
         # TODO: Initialize all hyperparameters
         self.input_size = 784 # Size of image vectors
         self.num_classes = 10 # Number of classes/possible labels
-        self.batch_size = 90
+        self.batch_size = 100
         self.learning_rate = 0.5
 
         # TODO: Initialize weights and biases
-        self.W = np.zeros((self.num_classes, self.input_size))
-        self.b = np.zeros((self.num_classes, 1))
+        self.W = np.random.rand(self.num_classes, self.input_size)
+        self.b = np.random.rand(self.num_classes, 1)
+        # self.W = np.zeros((self.num_classes, self.input_size))
+        # self.b = np.zeros((self.num_classes, 1))
 
     def call(self, inputs):
         """
@@ -38,7 +40,6 @@ class Model:
         """
 
         # TODO: Write the forward pass logic for your model
-        inputs = inputs.reshape(inputs.shape[0], 784)  # reshape inputs to be (batch_size, 784) so it can be multiplied
         return np.matmul(inputs, self.W.T) + self.b.T  # multiply inputs with transposed weights and broadcast bias
 
     def back_propagation(self, inputs, outputs, labels):
@@ -61,9 +62,9 @@ class Model:
         predicted_labels = np.argmax(outputs, axis=1)
         y = np.eye(self.num_classes)[labels] - np.eye(self.num_classes)[predicted_labels]  # calc error by the difference of one hot true and predicted labels
 
-        inputs = inputs.reshape(inputs.shape[0], 784)  # reshape for matmul
-        gradW = np.matmul(y.T, inputs) / inputs.shape[0]
-        gradB = np.matmul(y.T, np.ones((len(inputs), 1))) / inputs.shape[0]  # multiply error to get grad weights and biases
+        gradW = np.matmul(y.T, inputs)
+        gradB = np.sum(y, axis=0, keepdims=True).T  # sum errors for each class
+
         return gradW, gradB
 
 
@@ -79,6 +80,7 @@ class Model:
         # TODO: calculate the batch accuracy
         predictions = np.argmax(outputs, axis=1)
         number_correct = np.sum(predictions == labels)  # sums all intersections
+        print(number_correct)
         return number_correct / len(labels)
 
 
@@ -167,11 +169,11 @@ def main(mnist_data_folder):
     :return: None
     """
     # TODO: load MNIST train and test examples into train_inputs, train_labels, test_inputs, test_labels
-    train_inputs, train_labels = get_data('MNIST_data/train-images-idx3-ubyte.gz',
-                                          'MNIST_data/train-labels-idx1-ubyte.gz',
+    train_inputs, train_labels = get_data(f'{mnist_data_folder}/train-images-idx3-ubyte.gz',
+                                          f'{mnist_data_folder}/train-labels-idx1-ubyte.gz',
                                           60000)
-    test_inputs, test_labels = get_data('MNIST_data/t10k-images-idx3-ubyte.gz',
-                                         'MNIST_data/t10k-labels-idx1-ubyte.gz',
+    test_inputs, test_labels = get_data(f'{mnist_data_folder}/t10k-images-idx3-ubyte.gz',
+                                         f'{mnist_data_folder}/t10k-labels-idx1-ubyte.gz',
                                          10000)
 
     # TODO: Create Model
@@ -183,7 +185,7 @@ def main(mnist_data_folder):
     test(model, test_inputs, test_labels)
     # TODO: Visualize the data by using visualize_results()
     num = random.randint(0,9989)
-    visualize_results(test_inputs[num:num+10], model.call(test_inputs)[num:num+10], test_labels[num:num+10])
+    # visualize_results(test_inputs[num:num+10], model.call(test_inputs)[num:num+10], test_labels[num:num+10])
     print("end of assignment 1")
 
 

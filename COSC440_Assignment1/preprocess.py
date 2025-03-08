@@ -32,7 +32,7 @@ def get_data(inputs_file_path, labels_file_path, num_examples):
     with gzip.open(inputs_file_path, 'rb') as inputs:
         inputs = np.frombuffer(inputs.read(), dtype=np.uint8, offset=16)
         inputs = inputs.astype(np.float32) / 255.0
-        inputs = inputs.reshape(num_examples, 28, 28)
+        inputs = inputs.reshape(num_examples, 784)
 
     with gzip.open(labels_file_path, 'rb') as labels:
         labels = np.frombuffer(labels.read(), dtype=np.int8, offset=8)
