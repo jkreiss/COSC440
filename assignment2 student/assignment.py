@@ -13,43 +13,96 @@ def linear_unit(x, W, b):
   return tf.matmul(x, W) + b
 
 class ModelPart0:
-    def __init__(self):
-        """
-        This model class contains a single layer network similar to Assignment 1.
-        """
+	def __init__(self):
+		"""
+		This model class contains a single layer network similar to Assignment 1.
+		"""
 
-        self.batch_size = 64
-        self.num_classes = 2
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+		self.batch_size = 64
+		self.num_classes = 2
+		self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 
-        input = 32 * 32 * 3
-        output = 2
-        self.W1 = tf.Variable(tf.random.truncated_normal([input, output],
-                                                         dtype=tf.float32,
-                                                         stddev=0.1),
-                              name="W1")
-        self.B1 = tf.Variable(tf.random.truncated_normal([1, output],
-                                                         dtype=tf.float32,
-                                                         stddev=0.1),
-                              name="B1")
-
-
-        self.trainable_variables = [self.W1, self.B1]
+		input = 32 * 32 * 3
+		output = 2
+		self.W1 = tf.Variable(tf.random.truncated_normal([input, output],
+														 dtype=tf.float32,
+														 stddev=0.1),
+							  name="W1")
+		self.B1 = tf.Variable(tf.random.truncated_normal([1, output],
+														 dtype=tf.float32,
+														 stddev=0.1),
+							  name="B1")
 
 
-    def call(self, inputs):
-        """
-        Runs a forward pass on an input batch of images.
-        :param inputs: images, shape of (num_inputs, 32, 32, 3); during training, the shape is (batch_size, 32, 32, 3)
-        :return: logits - a matrix of shape (num_inputs, num_classes); during training, it would be (batch_size, 2)
-        """
-        # Remember that
-        # shape of input = (num_inputs (or batch_size), in_height, in_width, in_channels)
+		self.trainable_variables = [self.W1, self.B1]
+
+
+	def call(self, inputs):
+		"""
+		Runs a forward pass on an input batch of images.
+		:param inputs: images, shape of (num_inputs, 32, 32, 3); during training, the shape is (batch_size, 32, 32, 3)
+		:return: logits - a matrix of shape (num_inputs, num_classes); during training, it would be (batch_size, 2)
+		"""
+		# Remember that
+		# shape of input = (num_inputs (or batch_size), in_height, in_width, in_channels)
 
 		# this reshape "flattens" the image data
-        inputs = np.reshape(inputs, [inputs.shape[0],-1])
-        x = linear_unit(inputs, self.W1, self.B1)
-        return x
+		inputs = np.reshape(inputs, [inputs.shape[0],-1])
+		x = linear_unit(inputs, self.W1, self.B1)
+		return x
+
+class ModelPart1:
+	def __init__(self):
+		"""
+		This model class contains a single layer network similar to Assignment 1.
+		"""
+
+		self.batch_size = 64
+		self.num_classes = 2
+		self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+
+		input1 = 32 * 32 * 3
+		output1 = 256
+		input2 = 256
+		output2 = 2
+		self.W1 = tf.Variable(tf.random.truncated_normal([input1, output1],
+														 dtype=tf.float32,
+														 stddev=0.1),
+							  name="W1")
+		self.B1 = tf.Variable(tf.random.truncated_normal([1, output1],
+														 dtype=tf.float32,
+														 stddev=0.1),
+							  name="B1")
+		self.W2 = tf.Variable(tf.random.truncated_normal([input2, output2],
+														 dtype=tf.float32,
+														 stddev=0.1),
+							  name="W2")
+		self.B2 = tf.Variable(tf.random.truncated_normal([1, output2],
+														 dtype=tf.float32,
+														 stddev=0.1),
+							  name="B2")
+
+
+		self.trainable_variables = [self.W1, self.B1]
+
+
+	def call(self, inputs):
+		"""
+		Runs a forward pass on an input batch of images.
+		:param inputs: images, shape of (num_inputs, 32, 32, 3); during training, the shape is (batch_size, 32, 32, 3)
+		:return: logits - a matrix of shape (num_inputs, num_classes); during training, it would be (batch_size, 2)
+		"""
+		# Remember that
+		# shape of input = (num_inputs (or batch_size), in_height, in_width, in_channels)
+
+		# this reshape "flattens" the image data
+		inputs = np.reshape(inputs, [inputs.shape[0],-1])
+
+		layer1 = linear_unit(inputs, self.W1, self.B1)
+		layer1_relu = tf.nn.relu(layer1)
+		layer2 = linear_unit(layer1_relu, self.W2, self.B2)
+		return layer2
+
 
 def loss(logits, labels):
 	"""
@@ -60,8 +113,8 @@ def loss(logits, labels):
 	:param labels: during training, matrix of shape (batch_size, self.num_classes) containing the train labels
 	:return: the loss of the model as a Tensor
 	"""
-
-	pass
+	l = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
+	return tf.reduce_mean(l)
 
 def accuracy(logits, labels):
 	"""
@@ -91,7 +144,23 @@ def train(model, train_inputs, train_labels):
 	:return: None
 	'''
 
-	pass
+	indices = tf.random.shuffle(range(train_inputs.shape[0]))  # randomize inputs
+	train_inputs, train_labels = tf.gather(train_inputs, indices), tf.gather(train_labels, indices)
+
+	for i in range(0, train_inputs.shape[0], model.batch_size):  # batching
+		batch_inputs = train_inputs[i:i + model.batch_size]
+		batch_labels = train_labels[i:i + model.batch_size]
+		batch_inputs = np.reshape(batch_inputs, [batch_inputs.shape[0], 32, 32, 3])
+
+		with tf.GradientTape() as tape:  # forward pass and loss in scope of GradientTape
+			logits = model.call(batch_inputs)
+			batch_loss = loss(logits, batch_labels)
+
+		grads = tape.gradient(batch_loss, model.trainable_variables)  # get and apply gradient
+		model.optimizer.apply_gradients(zip(grads, model.trainable_variables))
+
+
+
 
 def test(model, test_inputs, test_labels):
 	"""
@@ -137,6 +206,7 @@ def visualize_results(image_inputs, probabilities, image_labels, first_label, se
 
 CLASS_CAT = 3
 CLASS_DOG = 5
+
 def main(cifar10_data_folder):
 	'''
 	Read in CIFAR10 data (limited to 2 classes), initialize your model, and train and
@@ -147,9 +217,19 @@ def main(cifar10_data_folder):
 	:return: None
 	'''
 
+	epochs = 25
+	train_inputs, train_labels = get_data("{}/train".format(cifar10_data_folder), CLASS_CAT, CLASS_DOG)
+	test_inputs, test_labels = get_data("{}/test".format(cifar10_data_folder), CLASS_CAT, CLASS_DOG)
+	model = ModelPart1()
+
+	for num in range(epochs):
+		train(model, train_inputs, train_labels)
+		accuracy = test(model, test_inputs, test_labels)
+		print('epoch {} accuracy {:.2f}%'.format(num + 1, accuracy.numpy() * 100))
+	print('final accuracy {:.2f}%'.format(accuracy.numpy() * 100))
 	return
 
 
 if __name__ == '__main__':
-    cifar_data_folder = './CIFAR_data/'
-    main(cifar_data_folder)
+	cifar_data_folder = './CIFAR_data/'
+	main(cifar_data_folder)

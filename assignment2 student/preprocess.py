@@ -42,7 +42,13 @@ def pre_process_data(inputs, labels, first_class, second_class):
 	has size (num_examples, num_classes)
 	"""
 	# TODO: Do the preprocessing!
-	pass
+	mask = (labels == first_class) | (labels == second_class)  # bool mask
+	inputs, labels = inputs[mask], labels[mask]
+	inputs = inputs.astype(np.float32) / 255.  # normalize between 0-1
+	inputs = np.reshape(inputs,(inputs.shape[0], 32,32,3))  # inputs.shape = num_examples, 32, 32, 3
+	labels = np.where(labels == first_class, 0, 1)  # binary labels
+	labels = tf.one_hot(labels, depth=2)
+	return inputs, labels
 
 def get_data(file_path, first_class, second_class):
 	"""
@@ -63,3 +69,5 @@ def get_data(file_path, first_class, second_class):
 	inputs = unpickled_file[b'data']
 	labels = unpickled_file[b'labels']
 	return pre_process_data(inputs, labels, first_class, second_class)
+
+get_data('CIFAR_data/train', 0, 1)
