@@ -1,6 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
+from tensorflow.python.framework import tensor
+
 
 # This encoder currently does nothing but allows the pipeline to run
 class PositionEmbeddingEncoder(tf.keras.layers.Layer):
@@ -27,11 +29,15 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
         self.embedding_dim = embedding_dim
 
         #todo fill this in
+        self.embeddings = []
+        for i in range(n_depth):
+            layer = keras.layers.Embedding(input_dim=(2**(i+1))**3, output_dim=self.embedding_dim)
+            self.embeddings.append(layer)
 
     def get_flattened_position(self, scaled_values, depth):
         """
         Take in a 3-dimensional position and map it onto multiple 3-D grids, where each grid is the original grid divided
-         by a factor of 2
+        by a factor of 2
 
         For example, in a 4x4x4 grid, there are 3 multi-resolutions -- 1x1x1, 2x2x2, 4x4x4
         We will ignore the 1x1x1 dimension because all points would have position 0.
@@ -42,7 +48,14 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
         Input: tensor of float32, shape [N, 3] of N points in 3-D space normalized such that all points are [0,1)
         Output: tensor of int32, shape [N, 1] of N flattened positions
         """
-        return None
+
+        grid_size = 2 ** (depth - 1)
+        scaled_values = tf.floor(scaled_values * grid_size)
+        x, y, z = scaled_values[:, 0], scaled_values[:, 1], scaled_values[:, 2]
+        flattened = x + (y * grid_size) + (z * (grid_size ** 2))
+
+        return tf.cast(flattened, tf.int32)
+
     def call(self, input):
         """
         This positional encoder should do a few things when called:
@@ -55,6 +68,14 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
         Output: tensor of float32, shape [N, N_POS*EMBEDDING_DIM] of N embeddings in positional encoded space
         """
         # todo fill this in
+        input = input / self.size
+
+        embeddings = []
+        for i in range(depth):
+            flattened = self.get_flattened_position(input, i + 1)
+            embedding = self.embeddings[depth](flattened)
+            embeddings.append(embedding)
+        return tf.concat(embeddings)
 
         return input
 
@@ -101,11 +122,15 @@ def ray_attenuation(attenuations, distances, magnitudes, near, far):
     :return: tensor of floats [n_rays] which is the attenuation value for each ray
     """
     # todo fill this in
+    differences = distances[1:] - distances[:-1]
+    mids = 0.5 * (attenuations[:, :-1] + attenuations[:, 1:])
+    weighted_sum = tf.reduce_sum(mids * differences, axis=1)
 
-    return None
+    return weighted_sum * magnitudes
+
 
 if __name__ == "__main__":
-    rays = tf.convert_to_tensor(np.array([[1.,0.,0.,-1.,0.1,0.1]]), dtype=tf.float64) # not realistic, just for the test
+    rays = tf.convert_to_tensor(np.array([[1.,0.,0.,-1.,0.1,0.1]]), dtype=tf.float64)  # not realistic just for the test
     near = np.float64(0.9)
     far = np.float64(1.1)
     # n_points = np.int32(10)
