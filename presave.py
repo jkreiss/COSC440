@@ -94,22 +94,15 @@ def rays_to_points(rays, n_points, near, far):
         (as these are randomly generated they need to be returned for later use)
     """
     # todo fill this in
-    scalars = tf.random.uniform([n_points])
-    scalars *= far - near
+    scalars = tf.random.uniform([n_points], minval=near, maxval=far, dtype=tf.float32)
     origins = tf.cast(rays[:, 0:3], tf.float32)
     directions = tf.cast(rays[:, 3:6], tf.float32)
-    scalars_expanded = tf.reshape(scalars, [1, n_points, 1])  # [1, n_points, 1]
-    directions_expanded = tf.expand_dims(directions, axis=1)  # [N, 1, 3]
-    origins_expanded = tf.expand_dims(origins, axis=1)  # [N, 1, 3]
-
-    # Multiply directions by scalar distances, then add to origins
-    points = origins_expanded + scalars_expanded * directions_expanded  # [N, n_points, 3]
-
-    return points, scalars
-    points = directions * scalars + origins
+    scalars2 = tf.reshape(scalars, [1, n_points, 1])
+    directions = tf.reshape(directions, [directions.shape[0], 1, directions.shape[1]])  # [N, 1, 3]
+    origins = tf.reshape(origins, [origins.shape[0], 1, origins.shape[1]])
+    points = directions * scalars2 + origins
     return points, scalars
 
-    return None
 
 rays = tf.convert_to_tensor(np.array([[1.,0.,0.,-1.,0.1,0.1]]), dtype=tf.float64)  # not realistic just for the test
 near = np.float64(0.9)
@@ -121,7 +114,7 @@ points, scalars = rays_to_points(rays, 10, near, far)
 print("rays_to_points output:")
 print(points)
 print(scalars)
-'''ays_to_points output:
+'''rays_to_points output:
 tf.Tensor(
 [[[ 0.09659314  0.09034069  0.09034069]
   [ 0.08707216  0.09129278  0.09129278]
@@ -132,4 +125,8 @@ tf.Tensor(
   [-0.03321439  0.10332144  0.10332144]
   [-0.06313688  0.10631369  0.10631369]
   [-0.07580807  0.10758081  0.10758081]
-  [-0.0987646   0.10987646  0.10987646]]], shape=(1, 10, 3), dtype=float64)'''
+  [-0.0987646   0.10987646  0.10987646]]], shape=(1, 10, 3), dtype=float64)
+tf.Tensor(
+[0.90340686 0.91292784 0.9463545  0.95772513 0.98930492 1.00671153
+ 1.03321439 1.06313688 1.07580807 1.0987646 ], shape=(10,), dtype=float64)
+tf.Tensor([1.00995049], shape=(1,), dtype=float64)'''

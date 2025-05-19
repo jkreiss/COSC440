@@ -29,11 +29,16 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
         self.embedding_dim = embedding_dim
 
         #todo fill this in
-        self.embeddings = []
-        for i in range(n_depth):
-            layer = keras.layers.Embedding(input_dim=(2**(i+1))**3, output_dim=self.embedding_dim)
-            self.embeddings.append(layer)
 
+        # self.embeddings = []
+        # for i in range(n_depth):
+        #     layer = keras.layers.Embedding(input_dim=(2**(i+1))**3, output_dim=self.embedding_dim)
+        #     self.embeddings.append(layer)
+
+        self.embeddings = [
+            keras.layers.Embedding(input_dim=(2 ** (i + 1)) ** 3, output_dim=self.embedding_dim)
+            for i in range(n_depth)
+        ]
     def get_flattened_position(self, scaled_values, depth):
         """
         Take in a 3-dimensional position and map it onto multiple 3-D grids, where each grid is the original grid divided
@@ -49,12 +54,12 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
         Output: tensor of int32, shape [N, 1] of N flattened positions
         """
 
-        grid_size = 2 ** (depth - 1)
+        grid_size = 2 ** depth
         scaled_values = tf.floor(scaled_values * grid_size)
         x, y, z = scaled_values[:, 0], scaled_values[:, 1], scaled_values[:, 2]
         flattened = x + (y * grid_size) + (z * (grid_size ** 2))
 
-        return tf.cast(flattened, tf.int32)
+        return tf.cast(tf.clip_by_value(flattened, 0, (grid_size**3)-1), tf.int32)
 
     def call(self, input):
         """
@@ -68,23 +73,24 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
         Output: tensor of float32, shape [N, N_POS*EMBEDDING_DIM] of N embeddings in positional encoded space
         """
         # todo fill this in
-        input = input / self.size
 
+        input = ((.5 * self.size) + input) / self.size
+        # input = tf.clip_by_value(input, 0.0, 1.0 - 1e-6)
         embeddings = []
-        for i in range(depth):
+        for i in range(self.n_depth):
             flattened = self.get_flattened_position(input, i + 1)
-            embedding = self.embeddings[depth](flattened)
+            embedding = self.embeddings[i](flattened)
             embeddings.append(embedding)
-        return tf.concat(embeddings)
+        return tf.concat(embeddings, axis=-1)
 
-        return input
 
     def get_output_dim(self):
         return self.n_depth * self.embedding_dim
 
 def rays_to_points(rays, n_points, near, far):
     """
-    Computes the sample points for the given rays. First, samples a uniform distribution to produce a set of scalars for n_points.
+    Computes the sample points for the given rays.
+    First, samples a uniform distribution to produce a set of scalars for n_points.
     Second, multiplies those scalars by the distance between far-near to produce a vector multiplier that is within the region of interest.
     Third, multiplies each ray's directional vector by the vector multiplier and adds it to the ray origin to produce a point.
 
@@ -98,8 +104,21 @@ def rays_to_points(rays, n_points, near, far):
         (as these are randomly generated they need to be returned for later use)
     """
     # todo fill this in
+    scalars = tf.linspace(near, far, n_points)
+    scalars = tf.cast(scalars, tf.float32)
+    noise = tf.random.uniform(shape=scalars.shape, minval=-0.01, maxval=0.01)
+    scalars = scalars + noise
 
-    return None
+    # scalars = tf.random.uniform([n_points], minval=near, maxval=far, dtype=tf.float32)
+    origins = tf.cast(rays[:, 0:3], tf.float32)
+    directions = tf.cast(rays[:, 3:6], tf.float32)
+
+    scalars2 = tf.reshape(scalars, [1, n_points, 1])
+    directions = tf.reshape(directions, [directions.shape[0], 1, directions.shape[1]])  # [N, 1, 3]
+    origins = tf.reshape(origins, [origins.shape[0], 1, origins.shape[1]])
+    points = tf.cast(directions, tf.float32) * tf.cast(scalars2, tf.float32) + tf.cast(origins, tf.float32)
+
+    return points, scalars
 
 def ray_attenuation(attenuations, distances, magnitudes, near, far):
     """
@@ -124,9 +143,9 @@ def ray_attenuation(attenuations, distances, magnitudes, near, far):
     # todo fill this in
     differences = distances[1:] - distances[:-1]
     mids = 0.5 * (attenuations[:, :-1] + attenuations[:, 1:])
-    weighted_sum = tf.reduce_sum(mids * differences, axis=1)
+    weighted_sum = tf.reduce_sum(tf.cast(mids, tf.float32) * tf.cast(differences, tf.float32), axis=1)
 
-    return weighted_sum * magnitudes
+    return tf.cast(weighted_sum, tf.float32) * tf.cast(magnitudes, tf.float32)
 
 
 if __name__ == "__main__":

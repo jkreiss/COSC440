@@ -170,4 +170,5 @@ if __name__ == '__main__':
 
     # 250 epochs is not enough to produce a high quality reconstruction but you should see
     # a clear shape after 10 epochs
-    main(dataset_path, epochs=250, n_points=192, n_rays=2048)
+    epochs = 251
+    main(dataset_path, epochs=epochs, n_points=192, n_rays=2048)
