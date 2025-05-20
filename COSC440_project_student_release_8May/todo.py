@@ -1,4 +1,5 @@
 import tensorflow as tf
+from keras.src.utils.dtype_utils import dtype_size
 from tensorflow import keras
 import numpy as np
 from tensorflow.python.framework import tensor
@@ -30,15 +31,11 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
 
         #todo fill this in
 
-        # self.embeddings = []
-        # for i in range(n_depth):
-        #     layer = keras.layers.Embedding(input_dim=(2**(i+1))**3, output_dim=self.embedding_dim)
-        #     self.embeddings.append(layer)
+        self.embeddings = []
+        for i in range(n_depth):
+            layer = keras.layers.Embedding(input_dim=(2**(i+1))**3, output_dim=self.embedding_dim)
+            self.embeddings.append(layer)
 
-        self.embeddings = [
-            keras.layers.Embedding(input_dim=(2 ** (i + 1)) ** 3, output_dim=self.embedding_dim)
-            for i in range(n_depth)
-        ]
     def get_flattened_position(self, scaled_values, depth):
         """
         Take in a 3-dimensional position and map it onto multiple 3-D grids, where each grid is the original grid divided
@@ -59,7 +56,7 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
         x, y, z = scaled_values[:, 0], scaled_values[:, 1], scaled_values[:, 2]
         flattened = x + (y * grid_size) + (z * (grid_size ** 2))
 
-        return tf.cast(tf.clip_by_value(flattened, 0, (grid_size**3)-1), tf.int32)
+        return tf.clip_by_value(flattened, 0, (grid_size**3)-1)
 
     def call(self, input):
         """
@@ -75,7 +72,8 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
         # todo fill this in
 
         input = ((.5 * self.size) + input) / self.size
-        # input = tf.clip_by_value(input, 0.0, 1.0 - 1e-6)
+        # input = (.5 + input) / self.size
+
         embeddings = []
         for i in range(self.n_depth):
             flattened = self.get_flattened_position(input, i + 1)
@@ -104,19 +102,18 @@ def rays_to_points(rays, n_points, near, far):
         (as these are randomly generated they need to be returned for later use)
     """
     # todo fill this in
-    scalars = tf.linspace(near, far, n_points)
-    scalars = tf.cast(scalars, tf.float32)
-    noise = tf.random.uniform(shape=scalars.shape, minval=-0.01, maxval=0.01)
+    scalars = tf.cast(tf.linspace(near, far, n_points), tf.float32)
+    deltas = ((far - near) / n_points) / 2
+    noise = tf.random.uniform(shape=scalars.shape, minval=-deltas, maxval=deltas)
     scalars = scalars + noise
 
-    # scalars = tf.random.uniform([n_points], minval=near, maxval=far, dtype=tf.float32)
     origins = tf.cast(rays[:, 0:3], tf.float32)
     directions = tf.cast(rays[:, 3:6], tf.float32)
 
     scalars2 = tf.reshape(scalars, [1, n_points, 1])
     directions = tf.reshape(directions, [directions.shape[0], 1, directions.shape[1]])  # [N, 1, 3]
     origins = tf.reshape(origins, [origins.shape[0], 1, origins.shape[1]])
-    points = tf.cast(directions, tf.float32) * tf.cast(scalars2, tf.float32) + tf.cast(origins, tf.float32)
+    points = (directions * scalars2) + origins
 
     return points, scalars
 
@@ -142,10 +139,10 @@ def ray_attenuation(attenuations, distances, magnitudes, near, far):
     """
     # todo fill this in
     differences = distances[1:] - distances[:-1]
+    differences = tf.concat([differences, differences[-1:]], axis=0)
     mids = 0.5 * (attenuations[:, :-1] + attenuations[:, 1:])
-    weighted_sum = tf.reduce_sum(tf.cast(mids, tf.float32) * tf.cast(differences, tf.float32), axis=1)
-
-    return tf.cast(weighted_sum, tf.float32) * tf.cast(magnitudes, tf.float32)
+    weighted_sum = tf.reduce_sum(attenuations * differences, axis=1)
+    return weighted_sum #* tf.cast(magnitudes, tf.float32)
 
 
 if __name__ == "__main__":
