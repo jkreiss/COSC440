@@ -71,7 +71,8 @@ class PositionEmbeddingEncoder(tf.keras.layers.Layer):
         """
         # todo fill this in
 
-        input = ((.5 * self.size) + input) / self.size
+        # input = ((.5 * self.size) + input) / self.size
+        input = 0.5 + input / tf.cast(self.size, tf.float32)
         # input = (.5 + input) / self.size
 
         embeddings = []

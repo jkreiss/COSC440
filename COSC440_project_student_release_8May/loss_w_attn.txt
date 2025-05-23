@@ -1,0 +1,70 @@
+E0000 00:00:1747972272.921974  256053 cuda_dnn.cc:8579] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1747972272.927306  256053 cuda_blas.cc:1407] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+W0000 00:00:1747972272.941427  256053 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
+W0000 00:00:1747972272.941454  256053 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
+W0000 00:00:1747972272.941455  256053 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
+W0000 00:00:1747972272.941457  256053 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
+2025-05-23 15:51:12.945143: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+I0000 00:00:1747972286.234209  256053 gpu_device.cc:2019] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 5512 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 3070, pci bus id: 0000:01:00.0, compute capability: 8.6
+/csse/users/jkr78/PycharmProjects/gitCOSC440/.venv/lib/python3.12/site-packages/keras/src/layers/activations/leaky_relu.py:41: UserWarning: Argument `alpha` is deprecated. Use `negative_slope` instead.
+  warnings.warn(
+Starting training...
+Epoch 0 loss: 0.00036691169952973723
+Epoch 1 loss: 0.00014066495350562036
+Epoch 2 loss: 6.541474431287497e-05
+Epoch 3 loss: 3.454059697105549e-05
+Epoch 4 loss: 3.3345957490382716e-05
+Epoch 5 loss: 2.4207320166169666e-05
+Epoch 6 loss: 2.6358560717198998e-05
+Epoch 7 loss: 1.8628656107466668e-05
+Epoch 8 loss: 1.6837615476106293e-05
+Epoch 9 loss: 1.9038247046410106e-05
+Epoch 10 loss: 1.2503902325988747e-05
+Epoch 10 SSIM: 0.28073960542678833 PSNR 11.947670936584473
+Epoch 11 loss: 9.972144653147552e-06
+Epoch 12 loss: 7.552747774752788e-06
+Epoch 13 loss: 6.2685057855560444e-06
+Epoch 14 loss: 5.584883638221072e-06
+Epoch 15 loss: 5.280979166855104e-06
+Epoch 16 loss: 4.981728125130758e-06
+Epoch 17 loss: 4.785350029123947e-06
+Epoch 18 loss: 4.557739885058254e-06
+Epoch 19 loss: 4.608520612237044e-06
+Epoch 20 loss: 4.420222921908135e-06
+Epoch 20 SSIM: 0.3023999333381653 PSNR 11.966071128845215
+Epoch 21 loss: 4.630851435649674e-06
+Epoch 22 loss: 4.386764430819312e-06
+Epoch 23 loss: 4.1537136894476134e-06
+Epoch 24 loss: 3.7531294765358325e-06
+Epoch 25 loss: 3.484672333797789e-06
+Epoch 26 loss: 3.1266808946384117e-06
+Epoch 27 loss: 2.835158056768705e-06
+Epoch 28 loss: 2.6487616651138524e-06
+Epoch 29 loss: 2.5347562768729404e-06
+Epoch 30 loss: 2.3924835659272503e-06
+Epoch 30 SSIM: 0.33714428544044495 PSNR 12.016824722290039
+Epoch 31 loss: 2.2484323380922433e-06
+Epoch 32 loss: 2.2039089344616514e-06
+Epoch 33 loss: 2.049760951194912e-06
+Epoch 34 loss: 2.011140395552502e-06
+Epoch 35 loss: 1.952359980350593e-06
+Epoch 36 loss: 1.927598987094825e-06
+Epoch 37 loss: 1.8788319948725984e-06
+Epoch 38 loss: 1.8340211909162463e-06
+Epoch 39 loss: 1.8282147493664525e-06
+Epoch 40 loss: 1.8236313508168678e-06
+Epoch 40 SSIM: 0.36277568340301514 PSNR 12.822623252868652
+Epoch 41 loss: 1.7944535102287773e-06
+Epoch 42 loss: 1.8214326473753317e-06
+Epoch 43 loss: 1.9012603615919943e-06
+Epoch 44 loss: 1.927823177538812e-06
+Epoch 45 loss: 1.9969040749856504e-06
+Epoch 46 loss: 2.075476459140191e-06
+Epoch 47 loss: 2.2958040517551126e-06
+Epoch 48 loss: 2.544454673625296e-06
+Epoch 49 loss: 2.767613068499486e-06
+Epoch 50 loss: 2.6348300252720946e-06
+Epoch 50 SSIM: 0.35822537541389465 PSNR 12.624109268188477
+Epoch 51 loss: 2.7332030185789336e-06
+Epoch 52 loss: 3.044714958377881e-06
