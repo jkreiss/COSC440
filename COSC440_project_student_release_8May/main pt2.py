@@ -12,31 +12,17 @@ import skimage.io
 class ResDense(tf.keras.layers.Layer):
     def __init__(self, in_dim):
         super().__init__()
-        self.dense = tf.keras.layers.Dense(in_dim)
-        self.activation = tf.keras.layers.LeakyReLU(alpha=0.2)
+        self.dense1 = tf.keras.layers.Dense(in_dim, activation=tf.keras.layers.LeakyReLU(0.2))
+        self.dense2 = tf.keras.layers.Dense(in_dim)
         self.norm = tf.keras.layers.LayerNormalization()
+        self.dropout = tf.keras.layers.Dropout(0.1)
 
     def call(self, inputs):
-        x = self.dense(inputs)
-        x = self.activation(x)
+        x = self.dense1(inputs)
+        x = self.dropout(x)
+        x = self.dense2(x)
         x = tf.concat([inputs, x], axis=-1)
         x = self.norm(x)
-        return x
-
-class AttentionBlock(tf.keras.layers.Layer):
-    '''Based off of Attention Is All You Need Vaswani et al.'''
-    def __init__(self, att_dim, heads, mlp_dim):
-        super().__init__()
-        self.attention = tf.keras.layers.MultiHeadAttention(num_heads=heads, key_dim=att_dim//heads)
-        self.norm1 = tf.keras.layers.LayerNormalization()
-        self.dense = tf.keras.layers.Dense(mlp_dim, activation=tf.keras.layers.LeakyReLU(0.2))
-        self.norm2 = tf.keras.layers.LayerNormalization()
-
-    def call(self, inputs):
-        attn = self.attention(inputs, inputs)
-        x = self.norm1(attn)
-        # x = self.dense(x)
-        # x = self.norm2(x)
         return x
 
 

@@ -5,30 +5,26 @@ from tensorflow import keras
 from geometry import TIGREDataset
 from todo import *
 import skimage.io
-# TODO CURRENTLY BETTER THAN PT2 UP TO AT LEAST 18!!
 # NOTE: The hyperparameter values in this file are set to similar numbers to the NAF paper.
 # You are encouraged to experiment and change them to find something that works better
 # for your architectural change. These should work fine for Step 1.
 class ResDense(tf.keras.layers.Layer):
     def __init__(self, in_dim):
         super().__init__()
-        self.dense = tf.keras.layers.Dense(in_dim)
-        self.activation = tf.keras.layers.LeakyReLU(alpha=0.2)
+        self.dense = tf.keras.layers.Dense(in_dim, activation=tf.keras.layers.LeakyReLU(alpha=0.2))
         self.norm = tf.keras.layers.LayerNormalization()
 
     def call(self, inputs):
         x = self.dense(inputs)
-        x = self.activation(x)
         x = tf.concat([inputs, x], axis=-1)
         x = self.norm(x)
         return x
 
 class AttentionBlock(tf.keras.layers.Layer):
-    '''
-    Based off of Attention Is All You Need Vaswani et al.
+    """
+    Based off transformer architecture in Attention Is All You Need Vaswani et al.
     mhattention->add/norm->dense->add/norm
-
-    '''
+    """
     def __init__(self, att_dim, heads, mlp_dim):
         super().__init__()
         self.attention = tf.keras.layers.MultiHeadAttention(num_heads=heads, key_dim=att_dim//heads)
@@ -40,8 +36,8 @@ class AttentionBlock(tf.keras.layers.Layer):
         attn = self.attention(inputs, inputs)
         x = self.norm1(inputs + attn)
         dense_out = self.dense(x)
+        # todo add another dense might smooth out psnr
         return self.norm2(x + dense_out)
-        return x
 
 
 class Model(tf.keras.layers.Layer):
@@ -74,10 +70,6 @@ class Model(tf.keras.layers.Layer):
         # Intermediate layers
         for i in range(1, num_layers - 1):
 
-            # TODO: maybe try embed -> FF -> attention -> FF -> attention ...
-            #  try with and without resi
-            #  maybe get rid of skips bc bad vibes
-
             if i in skips:
                 self.layers.append(ResDense(hidden_dim + self.in_dim))
             else:
@@ -88,10 +80,8 @@ class Model(tf.keras.layers.Layer):
 
         # Activation functions
         self.activations = []
-        # self.norms = []
         for i in range(num_layers - 1):
             self.activations.append(tf.keras.layers.LeakyReLU(alpha=0.2))  # Equivalent to nn.LeakyReLU() in PyTorch
-            # self.norms.append(tf.keras.layers.Normalization())
 
         # Handle last activation
         if last_activation == "sigmoid":
@@ -102,30 +92,20 @@ class Model(tf.keras.layers.Layer):
             raise NotImplementedError("Unknown last activation")
 
     def call(self, x):
-        # First, encode the input using the encoder
-        # print(x.shape)
-        n_rays, n_points = x.shape[0], x.shape[1]
+        n_rays, n_points = x.shape[0], x.shape[1]  # store n_rays n_points so multi head attention has soemthing to pay attention to i.e. batch size seq length
         x = tf.reshape(x, (-1, 3))
         x = self.encoder(x)
-        # n_rays = tf.shape(x)[0] // n_points  # assuming 192 n_points; make configurable
-        x = tf.reshape(x, (n_rays, n_points, -1))  # [B, T, D]
-        # print(x.shape)
+        x = tf.reshape(x, (n_rays, n_points, -1))
 
-        # Step 3: Attention block(s)
         x = self.attention(x)
 
-        # Step 4: Collapse sequence if needed
-        x = tf.reshape(x, (-1, x.shape[-1]))  # [B*T, D]
-        # Extract input points (if needed for skip connections)
+        x = tf.reshape(x, (-1, x.shape[-1]))  # back to n_rays * n_points
         input_pts = x[..., :self.in_dim]
-        # x = tf.reshape(x_encode, [x.shape[0], x.shape[1], -1])  # [batch, seq_len, in_dim]
-        # x = self.attention(x)
 
         # Apply the layers
         for i in range(self.num_layers):
             layer = self.layers[i]
             activation = self.activations[i] if i < len(self.activations) else None
-            # norm = self.norms[i] if i < len(self.norms) else None
 
             # If this layer is a skip layer, concatenate the input points
             if i in self.skips:
@@ -137,8 +117,6 @@ class Model(tf.keras.layers.Layer):
             # Apply the activation function
             if activation:
                 x = activation(x)
-            # if norm:
-            #     x = norm(x)
 
         return x
 
@@ -152,29 +130,17 @@ def train(model, dataset, optimizer, n_points):
     total_loss = 0
     for i in range(num_projections):
         projection, rays = dataset[i]
-        all_points, all_distances = rays_to_points(rays, n_points, dataset.near, dataset.far)
-        # print(all_points.shape)
-        # print(all_points.shape)
+        points, distances = rays_to_points(rays, n_points, dataset.near, dataset.far)
         magnitudes = tf.norm(rays[..., 3:6], axis=-1)
-        n_rays = all_points.shape[0]
-        points = tf.reshape(all_points, (-1, 3))
+        n_rays = points.shape[0]
+        # points = tf.reshape(points, (-1, 3))  # dont flatten
 
-        for start in range(0, n_rays, n_rays):
-            end = min(start + n_rays, n_rays)
-
-            # points = tf.reshape(all_points[start:end], (-1, 3))
-            distances = all_distances
-            mags = magnitudes[start:end]
-            proj = projection[start:end]
-
-            with tf.GradientTape() as tape:
-                attenuation = model(all_points)
-                attenuation = tf.reshape(attenuation, (end-start, -1))
-                predicted_attenuation = ray_attenuation(attenuation, distances, mags, dataset.near, dataset.far)
-
-
-                loss = tf.keras.losses.MSE(projection, predicted_attenuation)
-                total_loss += loss
+        with tf.GradientTape() as tape:
+            attenuation = model(points)
+            attenuation = tf.reshape(attenuation, (n_rays, -1))
+            predicted_attenuation = ray_attenuation(attenuation, distances, magnitudes, dataset.near, dataset.far)
+            loss = tf.keras.losses.MSE(projection, predicted_attenuation)
+            total_loss += loss
         gradients = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
     return total_loss / num_projections
