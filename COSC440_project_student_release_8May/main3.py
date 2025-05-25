@@ -31,13 +31,15 @@ class AttentionBlock(tf.keras.layers.Layer):
         self.norm1 = tf.keras.layers.LayerNormalization()
         self.dense = tf.keras.layers.Dense(24, activation=tf.keras.layers.LeakyReLU(0.2))
         self.norm2 = tf.keras.layers.LayerNormalization()
+        self.dense3 = tf.keras.layers.Dense(mlp_dim)
 
     def call(self, inputs):
         attn = self.attention(inputs, inputs)
         x = self.norm1(inputs + attn)
-        dense_out = self.dense(x)
+        dense = self.dense(x)
         # todo add another dense might smooth out psnr
-        return self.norm2(x + dense_out)
+        out = self.norm2(x + dense)
+        return self.dense3(out)  # project back to normal mlp dim
 
 
 class Model(tf.keras.layers.Layer):

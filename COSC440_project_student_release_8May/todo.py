@@ -140,9 +140,9 @@ def ray_attenuation(attenuations, distances, magnitudes, near, far):
     """
     # todo fill this in
     differences = distances[1:] - distances[:-1]
-    differences = tf.concat([differences, differences[-1:]], axis=0)
+    # differences = tf.concat([differences, differences[-1:]], axis=0)
     mids = 0.5 * (attenuations[:, :-1] + attenuations[:, 1:])
-    weighted_sum = tf.reduce_sum(attenuations * differences, axis=1)
+    weighted_sum = tf.reduce_sum(mids * differences, axis=1)
     return weighted_sum * tf.cast(magnitudes, tf.float32)
 
 

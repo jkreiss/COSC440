@@ -13,16 +13,14 @@ class ResDense(tf.keras.layers.Layer):
     def __init__(self, in_dim):
         super().__init__()
         self.dense1 = tf.keras.layers.Dense(in_dim, activation=tf.keras.layers.LeakyReLU(0.2))
-        self.dense2 = tf.keras.layers.Dense(in_dim)
+        # self.dense2 = tf.keras.layers.Dense(in_dim)
         self.norm = tf.keras.layers.LayerNormalization()
-        self.dropout = tf.keras.layers.Dropout(0.1)
 
     def call(self, inputs):
         x = self.dense1(inputs)
-        x = self.dropout(x)
-        x = self.dense2(x)
         x = tf.concat([inputs, x], axis=-1)
         x = self.norm(x)
+        # x = self.dense2(x)
         return x
 
 
