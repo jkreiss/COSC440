@@ -27,19 +27,20 @@ class AttentionBlock(tf.keras.layers.Layer):
     """
     def __init__(self, att_dim, heads, mlp_dim):
         super().__init__()
-        self.attention = tf.keras.layers.MultiHeadAttention(num_heads=heads, key_dim=att_dim//heads)
+        self.attention = tf.keras.layers.MultiHeadAttention(num_heads=heads, key_dim=48//heads)
         self.norm1 = tf.keras.layers.LayerNormalization()
-        self.dense = tf.keras.layers.Dense(24, activation=tf.keras.layers.LeakyReLU(0.2))
+        self.dense = tf.keras.layers.Dense(48, activation=tf.keras.layers.LeakyReLU(0.2))
         self.norm2 = tf.keras.layers.LayerNormalization()
         self.dense3 = tf.keras.layers.Dense(mlp_dim)
 
     def call(self, inputs):
+
         attn = self.attention(inputs, inputs)
         x = self.norm1(inputs + attn)
         dense = self.dense(x)
         # todo add another dense might smooth out psnr
         out = self.norm2(x + dense)
-        return self.dense3(out)  # project back to normal mlp dim
+        return self.dense3(out)  # project back to mlp dim
 
 
 class Model(tf.keras.layers.Layer):
@@ -65,7 +66,8 @@ class Model(tf.keras.layers.Layer):
         # Define the layers
         self.layers = []
         # First layer
-        self.attention = AttentionBlock(self.in_dim, 2, self.hidden_dim)
+        self.attention = AttentionBlock(self.in_dim, 1, self.hidden_dim)
+        self.preatt = tf.keras.layers.Dense(48)
 
         self.layers.append(tf.keras.layers.Dense(hidden_dim))
 
@@ -98,7 +100,7 @@ class Model(tf.keras.layers.Layer):
         x = tf.reshape(x, (-1, 3))
         x = self.encoder(x)
         x = tf.reshape(x, (n_rays, n_points, -1))
-
+        x = self.preatt(x)
         x = self.attention(x)
 
         x = tf.reshape(x, (-1, x.shape[-1]))  # back to n_rays * n_points
