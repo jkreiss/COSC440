@@ -27,9 +27,9 @@ class AttentionBlock(tf.keras.layers.Layer):
     """
     def __init__(self, att_dim, heads, mlp_dim):
         super().__init__()
-        self.attention = tf.keras.layers.MultiHeadAttention(num_heads=heads, key_dim=48//heads)
+        self.attention = tf.keras.layers.MultiHeadAttention(num_heads=heads, key_dim=att_dim//heads) #change back to attn dim for best results so far
         self.norm1 = tf.keras.layers.LayerNormalization()
-        self.dense = tf.keras.layers.Dense(48, activation=tf.keras.layers.LeakyReLU(0.2))
+        self.dense = tf.keras.layers.Dense(att_dim*2, activation=tf.keras.layers.LeakyReLU(0.2))
         self.norm2 = tf.keras.layers.LayerNormalization()
         self.dense3 = tf.keras.layers.Dense(mlp_dim)
 
@@ -38,7 +38,6 @@ class AttentionBlock(tf.keras.layers.Layer):
         attn = self.attention(inputs, inputs)
         x = self.norm1(inputs + attn)
         dense = self.dense(x)
-        # todo add another dense might smooth out psnr
         out = self.norm2(x + dense)
         return self.dense3(out)  # project back to mlp dim
 
@@ -51,7 +50,7 @@ class Model(tf.keras.layers.Layer):
     at that point in 3-dimensional space.
     """
 
-    def __init__(self, encoder, bound=0.2, num_layers=3, hidden_dim=32, skips=(1, 3), out_dim=1,
+    def __init__(self, encoder, bound=0.2, num_layers=3, hidden_dim=24, skips=(1, 3), out_dim=1,
                  last_activation="sigmoid"):
         super(Model, self).__init__()
 
@@ -66,8 +65,8 @@ class Model(tf.keras.layers.Layer):
         # Define the layers
         self.layers = []
         # First layer
-        self.attention = AttentionBlock(self.in_dim, 1, self.hidden_dim)
-        self.preatt = tf.keras.layers.Dense(48)
+        self.preatt = tf.keras.layers.Dense(self.in_dim * 2)
+        self.attention = AttentionBlock(self.in_dim, 2, self.hidden_dim)
 
         self.layers.append(tf.keras.layers.Dense(hidden_dim))
 
@@ -75,9 +74,9 @@ class Model(tf.keras.layers.Layer):
         for i in range(1, num_layers - 1):
 
             if i in skips:
-                self.layers.append(ResDense(hidden_dim + self.in_dim))
+                self.layers.append(tf.keras.layers.Dense(hidden_dim + self.in_dim))
             else:
-                self.layers.append(ResDense(hidden_dim))
+                self.layers.append(tf.keras.layers.Dense(hidden_dim))
 
         # Output layer
         self.layers.append(tf.keras.layers.Dense(out_dim))
@@ -96,11 +95,11 @@ class Model(tf.keras.layers.Layer):
             raise NotImplementedError("Unknown last activation")
 
     def call(self, x):
-        n_rays, n_points = x.shape[0], x.shape[1]  # store n_rays n_points so multi head attention has soemthing to pay attention to i.e. batch size seq length
+        n_rays, n_points = x.shape[0], x.shape[1]  # store n_rays n_points for multiheadattention query key
         x = tf.reshape(x, (-1, 3))
         x = self.encoder(x)
         x = tf.reshape(x, (n_rays, n_points, -1))
-        x = self.preatt(x)
+        x = self.preatt(x)  # expand 'value' dim for mha
         x = self.attention(x)
 
         x = tf.reshape(x, (-1, x.shape[-1]))  # back to n_rays * n_points
